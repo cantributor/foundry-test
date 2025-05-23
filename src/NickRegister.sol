@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-
 /**
  * @title NickRegister
  * @dev User nickname register contract
