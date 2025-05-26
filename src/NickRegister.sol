@@ -11,8 +11,8 @@ import {ShortStrings} from "../lib/openzeppelin-contracts/contracts/utils/ShortS
  * @dev User nickname register contract
  */
 contract NickRegister is Ownable {
-    uint8 constant MIN_NICK_LENGTH = 3;
-    uint8 constant MAX_NICK_LENGTH = 31;
+    uint8 constant public MIN_NICK_LENGTH = 3;
+    uint8 constant public MAX_NICK_LENGTH = 31;
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
@@ -61,7 +61,7 @@ contract NickRegister is Ownable {
      * @param account Nick account
      * @param nick Registered nick
      */
-    event SuccessfulNickRegistration(address indexed account, string nick);
+    event SuccessfulNickRegistration(address indexed account, string indexed nick);
 
     /**
      * @dev Get nick of account
@@ -81,7 +81,7 @@ contract NickRegister is Ownable {
      * @param nick Account nick
      * @return account
      */
-    function accountOf(string memory nick) onlyOwner public view returns (address) {
+    function accountOf(string memory nick) onlyOwner external view returns (address) {
         ShortString nickShortString = ShortStrings.toShortString(nick);
         address foundAccount = accountByNick[nickShortString];
         if (foundAccount == address(0)) {
@@ -119,13 +119,14 @@ contract NickRegister is Ownable {
         accountByNick[nickShortString] = msg.sender;
         allNicks.push(nickShortString);
         nickCounter++;
+        emit SuccessfulNickRegistration(msg.sender, nick);
     }
 
     /**
      * @dev Get nicks total number
      * @return Nicks total number
      */
-    function nicksTotal() onlyOwner public view returns (uint32) {
+    function nicksTotal() onlyOwner external view returns (uint32) {
         return nickCounter;
     }
 
@@ -133,7 +134,7 @@ contract NickRegister is Ownable {
      * @dev Get all nicks
      * @return allNicksArray All nicks array
      */
-    function getAllNicks() onlyOwner public view returns (string[] memory allNicksArray) {
+    function getAllNicks() onlyOwner external view returns (string[] memory allNicksArray) {
         for (uint256 i = 0; i < allNicks.length; ++i) {
             allNicksArray[i] = ShortStrings.toString(allNicks[i]);
         }
