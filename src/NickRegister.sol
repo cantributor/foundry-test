@@ -2,17 +2,25 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity 0.8.28;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {ShortString} from "../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
+import {ShortStrings} from "../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
 
 /**
  * @title NickRegister
  * @dev User nickname register contract
  */
 contract NickRegister is Ownable {
+    uint8 constant MIN_NICK_LENGTH = 3;
+    uint8 constant MAX_NICK_LENGTH = 31;
+
     constructor(address initialOwner) Ownable(initialOwner) {}
 
-    mapping(address account => string nick) private nickByAccount;
-    mapping(string nick => address account) private accountByNick;
+    mapping(address account => ShortString nick) private nickByAccount;
+    mapping(ShortString nick => address account) private accountByNick;
+
+    ShortString[] private allNicks;
+    uint32 private nickCounter;
 
     /**
      * @dev Trying to get unregistered account nickname
@@ -32,7 +40,7 @@ contract NickRegister is Ownable {
      * @param length Nick length
      * @param correctLength Correct length
      */
-    error NickTooShort(string nick, uint8 length, uint8 correctLength);
+    error NickTooShort(string nick, uint256 length, uint8 correctLength);
 
     /**
      * @dev Too long nick
@@ -40,7 +48,7 @@ contract NickRegister is Ownable {
      * @param length Nick length
      * @param correctLength Correct length
      */
-    error NickTooLong(string nick, uint8 length, uint8 correctLength);
+    error NickTooLong(string nick, uint256 length, uint8 correctLength);
 
     /**
      * @dev Nick already registered
@@ -61,18 +69,74 @@ contract NickRegister is Ownable {
      * @return nick
      */
     function nickOf(address account) onlyOwner public view returns (string memory) {
-        string memory result = nickByAccount[account];
-        if (bytes(result).length == 0) {
+        ShortString foundNick = nickByAccount[account];
+        if (ShortStrings.byteLength(foundNick) == 0) {
             revert AccountNotRegistered(account);
         }
-        return result;
+        return ShortStrings.toString(foundNick);
+    }
+
+    /**
+     * @dev Get account of nick
+     * @param nick Account nick
+     * @return account
+     */
+    function accountOf(string memory nick) onlyOwner public view returns (address) {
+        ShortString nickShortString = ShortStrings.toShortString(nick);
+        address foundAccount = accountByNick[nickShortString];
+        if (foundAccount == address(0)) {
+            revert NickNotRegistered(nick);
+        }
+        return foundAccount;
     }
 
     /**
      * @dev Get nick of caller
      * @return caller nick
      */
-    function nick() external view returns (string memory) {
+    function myNick() external view returns (string memory) {
         return nickOf(msg.sender);
+    }
+
+    /**
+     * @dev Register nick for account
+     * @param nick Nick for registration
+     */
+    function registerNick(string calldata nick) external {
+        bytes memory nickBytes = bytes(nick);
+        if (nickBytes.length > MAX_NICK_LENGTH) {
+            revert NickTooLong(nick, nickBytes.length, MAX_NICK_LENGTH);
+        }
+        if (nickBytes.length < MIN_NICK_LENGTH) {
+            revert NickTooShort(nick, nickBytes.length, MIN_NICK_LENGTH);
+        }
+        ShortString nickShortString = ShortStrings.toShortString(nick);
+        address foundAccount = accountByNick[nickShortString];
+        if (foundAccount != address(0)) {
+            revert NickAlreadyRegistered(nick);
+        }
+        nickByAccount[msg.sender] = nickShortString;
+        accountByNick[nickShortString] = msg.sender;
+        allNicks.push(nickShortString);
+        nickCounter++;
+    }
+
+    /**
+     * @dev Get nicks total number
+     * @return Nicks total number
+     */
+    function nicksTotal() onlyOwner public view returns (uint32) {
+        return nickCounter;
+    }
+
+    /**
+     * @dev Get all nicks
+     * @return allNicksArray All nicks array
+     */
+    function getAllNicks() onlyOwner public view returns (string[] memory allNicksArray) {
+        for (uint256 i = 0; i < allNicks.length; ++i) {
+            allNicksArray[i] = ShortStrings.toString(allNicks[i]);
+        }
+        return allNicksArray;
     }
 }
