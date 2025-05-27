@@ -68,7 +68,7 @@ contract NickRegister is Ownable {
      * @param account Nick account
      * @return nick
      */
-    function nickOf(address account) onlyOwner public view returns (string memory) {
+    function nickOf(address account) onlyOwner external view returns (string memory) {
         ShortString foundNick = nickByAccount[account];
         if (ShortStrings.byteLength(foundNick) == 0) {
             revert AccountNotRegistered(account);
@@ -95,7 +95,12 @@ contract NickRegister is Ownable {
      * @return caller nick
      */
     function myNick() external view returns (string memory) {
-        return nickOf(msg.sender);
+        address account = msg.sender;
+        ShortString foundNick = nickByAccount[account];
+        if (ShortStrings.byteLength(foundNick) == 0) {
+            revert AccountNotRegistered(account);
+        }
+        return ShortStrings.toString(foundNick);
     }
 
     /**
@@ -132,12 +137,13 @@ contract NickRegister is Ownable {
 
     /**
      * @dev Get all nicks
-     * @return allNicksArray All nicks array
+     * @return result All nicks array
      */
-    function getAllNicks() onlyOwner external view returns (string[] memory allNicksArray) {
+    function getAllNicks() onlyOwner external view returns (string[] memory result) {
+        result = new string[](allNicks.length);
         for (uint256 i = 0; i < allNicks.length; ++i) {
-            allNicksArray[i] = ShortStrings.toString(allNicks[i]);
+            result[i] = ShortStrings.toString(allNicks[i]);
         }
-        return allNicksArray;
+        return result;
     }
 }
